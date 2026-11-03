@@ -68,7 +68,6 @@ Projenin amacı; Windows Forms üzerinde zamanlayıcı (Timer) döngüsü, klavy
 |:---:|:---:|
 | ![Ekran Görüntüsü 1](screenshots/ekran1.png) | ![Ekran Görüntüsü 2](screenshots/ekran2.png) |
 
-*(Not: `screenshots/` klasörüne `ekran1.png` ve `ekran2.png` isimli ekran görüntülerinizi eklediğinizde yukarıdaki tabloda otomatik olarak görünecektir.)*
 
 ---
 
