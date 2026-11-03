@@ -1,0 +1,11 @@
+## [Visual Studio / .NET .gitignore]
+bin/
+obj/
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+[Dd]ebug/
+[Rr]elease/
+*.log
