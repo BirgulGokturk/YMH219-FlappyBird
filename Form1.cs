@@ -99,4 +99,11 @@ public partial class Form1 : Form
         _engine.SoundManager.IsMuted = !_engine.SoundManager.IsMuted;
         btnSound.Text = _engine.SoundManager.IsMuted ? "🔇 Ses: Kapalı" : "🔊 Ses: Açık";
     }
+
+    protected override void OnFormClosed(FormClosedEventArgs e)
+    {
+        gameTimer.Stop();
+        _engine.Dispose();
+        base.OnFormClosed(e);
+    }
 }

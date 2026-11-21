@@ -8,7 +8,7 @@ namespace YMH219_FlappyBird.Engine
     /// <summary>
     /// Flappy Bird oyun mekaniklerini, nesnelerini, çarpışmalarını ve durumunu yöneten ana motor sınıfı.
     /// </summary>
-    public class GameEngine
+    public class GameEngine : IDisposable
     {
         public Bird Bird { get; private set; }
         public List<PipePair> Pipes { get; private set; } = new();
@@ -25,6 +25,16 @@ namespace YMH219_FlappyBird.Engine
         public int Level => (ScoreManager.CurrentScore / 5) + 1;
 
         private float _groundOffset = 0f;
+
+        // HUD yazı tipleri ve fırçaları her karede (saniyede ~55 kez) yeniden oluşturulmak yerine
+        // bir kez oluşturulur; oyun kapanırken Dispose ile serbest bırakılır.
+        private readonly Font _scoreFont = new("Segoe UI", 26, FontStyle.Bold);
+        private readonly Font _infoFont = new("Segoe UI", 12, FontStyle.Bold);
+        private readonly Font _titleFont = new("Segoe UI", 24, FontStyle.Bold);
+        private readonly Font _subFont = new("Segoe UI", 11, FontStyle.Regular);
+        private readonly Brush _textShadow = new SolidBrush(Color.FromArgb(180, 0, 0, 0));
+        private readonly Brush _panelBrush = new SolidBrush(Color.FromArgb(235, 255, 255, 255));
+        private readonly Pen _panelBorder = new(Color.FromArgb(60, 40, 20), 2.5f);
         private readonly List<PointF> _clouds = new();
 
         public GameEngine(int width, int height)
@@ -270,97 +280,101 @@ namespace YMH219_FlappyBird.Engine
 
         private void DrawHUD(Graphics g, int clientWidth)
         {
-            using (Font scoreFont = new Font("Segoe UI", 26, FontStyle.Bold))
-            using (Font infoFont = new Font("Segoe UI", 12, FontStyle.Bold))
-            using (Font titleFont = new Font("Segoe UI", 24, FontStyle.Bold))
-            using (Font subFont = new Font("Segoe UI", 11, FontStyle.Regular))
-            using (Brush textShadow = new SolidBrush(Color.FromArgb(180, 0, 0, 0)))
-            using (Brush textWhite = new SolidBrush(Color.White))
-            using (Brush panelBrush = new SolidBrush(Color.FromArgb(235, 255, 255, 255)))
-            using (Pen panelBorder = new Pen(Color.FromArgb(60, 40, 20), 2.5f))
+            // Mevcut Skor (Üst orta)
+            string scoreStr = ScoreManager.CurrentScore.ToString();
+            SizeF scoreSize = g.MeasureString(scoreStr, _scoreFont);
+            float scoreX = (clientWidth - scoreSize.Width) / 2f;
+            float scoreY = 25f;
+
+            // Skor gölgesi ve kendisi
+            g.DrawString(scoreStr, _scoreFont, _textShadow, scoreX + 2, scoreY + 2);
+            g.DrawString(scoreStr, _scoreFont, Brushes.White, scoreX, scoreY);
+
+            // Sol üstte Seviye ve High Score bilgisi
+            string levelInfo = $"Seviye: {Level} | Hız: {CurrentSpeed:0.0}x";
+            string highInfo = $"En Yüksek: {ScoreManager.HighScore}";
+            g.DrawString(levelInfo, _infoFont, _textShadow, 16, 16);
+            g.DrawString(levelInfo, _infoFont, Brushes.Yellow, 15, 15);
+            g.DrawString(highInfo, _infoFont, _textShadow, 16, 38);
+            g.DrawString(highInfo, _infoFont, Brushes.White, 15, 37);
+
+            // DURUM: Hazır Ekranı
+            if (State == GameState.Ready)
             {
-                // Mevcut Skor (Üst orta)
-                string scoreStr = ScoreManager.CurrentScore.ToString();
-                SizeF scoreSize = g.MeasureString(scoreStr, scoreFont);
-                float scoreX = (clientWidth - scoreSize.Width) / 2f;
-                float scoreY = 25f;
+                float cardW = 280;
+                float cardH = 150;
+                float cardX = (clientWidth - cardW) / 2f;
+                float cardY = (GameHeight - cardH) / 2.3f;
 
-                // Skor gölgesi ve kendisi
-                g.DrawString(scoreStr, scoreFont, textShadow, scoreX + 2, scoreY + 2);
-                g.DrawString(scoreStr, scoreFont, textWhite, scoreX, scoreY);
+                RectangleF cardRect = new RectangleF(cardX, cardY, cardW, cardH);
+                g.FillRectangle(_panelBrush, cardRect);
+                g.DrawRectangle(_panelBorder, cardRect.X, cardRect.Y, cardRect.Width, cardRect.Height);
 
-                // Sol üstte Seviye ve High Score bilgisi
-                string levelInfo = $"Seviye: {Level} | Hız: {CurrentSpeed:0.0}x";
-                string highInfo = $"En Yüksek: {ScoreManager.HighScore}";
-                g.DrawString(levelInfo, infoFont, textShadow, 16, 16);
-                g.DrawString(levelInfo, infoFont, Brushes.Yellow, 15, 15);
-                g.DrawString(highInfo, infoFont, textShadow, 16, 38);
-                g.DrawString(highInfo, infoFont, Brushes.White, 15, 37);
+                string title = "FLAPPY BIRD";
+                SizeF titleSize = g.MeasureString(title, _titleFont);
+                g.DrawString(title, _titleFont, Brushes.DarkOrange, cardX + (cardW - titleSize.Width) / 2, cardY + 15);
 
-                // DURUM: Hazır Ekranı
-                if (State == GameState.Ready)
-                {
-                    float cardW = 280;
-                    float cardH = 150;
-                    float cardX = (clientWidth - cardW) / 2f;
-                    float cardY = (GameHeight - cardH) / 2.3f;
+                string hint1 = "Uçmak için [BOŞLUK] veya [↑]";
+                string hint2 = "Oyunu başlatmak için tuşa basın!";
+                SizeF h1Size = g.MeasureString(hint1, _subFont);
+                SizeF h2Size = g.MeasureString(hint2, _subFont);
 
-                    RectangleF cardRect = new RectangleF(cardX, cardY, cardW, cardH);
-                    g.FillRectangle(panelBrush, cardRect);
-                    g.DrawRectangle(panelBorder, cardRect.X, cardRect.Y, cardRect.Width, cardRect.Height);
-
-                    string title = "FLAPPY BIRD";
-                    SizeF titleSize = g.MeasureString(title, titleFont);
-                    g.DrawString(title, titleFont, Brushes.DarkOrange, cardX + (cardW - titleSize.Width) / 2, cardY + 15);
-
-                    string hint1 = "Uçmak için [BOŞLUK] veya [↑]";
-                    string hint2 = "Oyunu başlatmak için tuşa basın!";
-                    SizeF h1Size = g.MeasureString(hint1, subFont);
-                    SizeF h2Size = g.MeasureString(hint2, subFont);
-
-                    g.DrawString(hint1, subFont, Brushes.DimGray, cardX + (cardW - h1Size.Width) / 2, cardY + 70);
-                    g.DrawString(hint2, subFont, Brushes.ForestGreen, cardX + (cardW - h2Size.Width) / 2, cardY + 98);
-                }
-                // DURUM: Duraklatıldı Ekranı
-                else if (State == GameState.Paused)
-                {
-                    string paused = "OYUN DURAKLATILDI";
-                    SizeF pSize = g.MeasureString(paused, titleFont);
-                    float px = (clientWidth - pSize.Width) / 2f;
-                    g.DrawString(paused, titleFont, textShadow, px + 2, 202);
-                    g.DrawString(paused, titleFont, Brushes.Orange, px, 200);
-
-                    string pSub = "Devam etmek için [P] tuşuna basın";
-                    SizeF psSize = g.MeasureString(pSub, infoFont);
-                    g.DrawString(pSub, infoFont, textWhite, (clientWidth - psSize.Width) / 2f, 250);
-                }
-                // DURUM: Game Over Ekranı
-                else if (State == GameState.GameOver)
-                {
-                    float boxW = 300;
-                    float boxH = 200;
-                    float boxX = (clientWidth - boxW) / 2f;
-                    float boxY = (GameHeight - boxH) / 2.5f;
-
-                    RectangleF boxRect = new RectangleF(boxX, boxY, boxW, boxH);
-                    g.FillRectangle(panelBrush, boxRect);
-                    g.DrawRectangle(panelBorder, boxRect.X, boxRect.Y, boxRect.Width, boxRect.Height);
-
-                    string gameOverText = "OYUN BİTTİ";
-                    SizeF goSize = g.MeasureString(gameOverText, titleFont);
-                    g.DrawString(gameOverText, titleFont, Brushes.Crimson, boxX + (boxW - goSize.Width) / 2, boxY + 15);
-
-                    string endScore = $"Skorunuz: {ScoreManager.CurrentScore}";
-                    string endHigh = $"En Yüksek Skor: {ScoreManager.HighScore}";
-                    string restartHint = "Yeniden başlamak için [BOŞLUK] veya [R]";
-
-                    g.DrawString(endScore, infoFont, Brushes.Black, boxX + 40, boxY + 70);
-                    g.DrawString(endHigh, infoFont, Brushes.DarkGoldenrod, boxX + 40, boxY + 100);
-
-                    SizeF rSize = g.MeasureString(restartHint, subFont);
-                    g.DrawString(restartHint, subFont, Brushes.DarkBlue, boxX + (boxW - rSize.Width) / 2, boxY + 145);
-                }
+                g.DrawString(hint1, _subFont, Brushes.DimGray, cardX + (cardW - h1Size.Width) / 2, cardY + 70);
+                g.DrawString(hint2, _subFont, Brushes.ForestGreen, cardX + (cardW - h2Size.Width) / 2, cardY + 98);
             }
+            // DURUM: Duraklatıldı Ekranı
+            else if (State == GameState.Paused)
+            {
+                string paused = "OYUN DURAKLATILDI";
+                SizeF pSize = g.MeasureString(paused, _titleFont);
+                float px = (clientWidth - pSize.Width) / 2f;
+                g.DrawString(paused, _titleFont, _textShadow, px + 2, 202);
+                g.DrawString(paused, _titleFont, Brushes.Orange, px, 200);
+
+                string pSub = "Devam etmek için [P] tuşuna basın";
+                SizeF psSize = g.MeasureString(pSub, _infoFont);
+                g.DrawString(pSub, _infoFont, Brushes.White, (clientWidth - psSize.Width) / 2f, 250);
+            }
+            // DURUM: Game Over Ekranı
+            else if (State == GameState.GameOver)
+            {
+                float boxW = 300;
+                float boxH = 200;
+                float boxX = (clientWidth - boxW) / 2f;
+                float boxY = (GameHeight - boxH) / 2.5f;
+
+                RectangleF boxRect = new RectangleF(boxX, boxY, boxW, boxH);
+                g.FillRectangle(_panelBrush, boxRect);
+                g.DrawRectangle(_panelBorder, boxRect.X, boxRect.Y, boxRect.Width, boxRect.Height);
+
+                string gameOverText = "OYUN BİTTİ";
+                SizeF goSize = g.MeasureString(gameOverText, _titleFont);
+                g.DrawString(gameOverText, _titleFont, Brushes.Crimson, boxX + (boxW - goSize.Width) / 2, boxY + 15);
+
+                string endScore = $"Skorunuz: {ScoreManager.CurrentScore}";
+                string endHigh = $"En Yüksek Skor: {ScoreManager.HighScore}";
+                string restartHint = "Yeniden başlamak için [BOŞLUK] veya [R]";
+
+                g.DrawString(endScore, _infoFont, Brushes.Black, boxX + 40, boxY + 70);
+                g.DrawString(endHigh, _infoFont, Brushes.DarkGoldenrod, boxX + 40, boxY + 100);
+
+                SizeF rSize = g.MeasureString(restartHint, _subFont);
+                g.DrawString(restartHint, _subFont, Brushes.DarkBlue, boxX + (boxW - rSize.Width) / 2, boxY + 145);
+            }
+        }
+
+        /// <summary>
+        /// Oyunun kullandığı yazı tiplerini ve fırçaları serbest bırakır.
+        /// </summary>
+        public void Dispose()
+        {
+            _scoreFont.Dispose();
+            _infoFont.Dispose();
+            _titleFont.Dispose();
+            _subFont.Dispose();
+            _textShadow.Dispose();
+            _panelBrush.Dispose();
+            _panelBorder.Dispose();
         }
     }
 }
