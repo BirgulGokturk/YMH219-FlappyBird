@@ -301,7 +301,11 @@ namespace YMH219_FlappyBird.Engine
             // DURUM: Hazır Ekranı
             if (State == GameState.Ready)
             {
-                float cardW = 280;
+                string title = "FLAPPY BIRD";
+                string hint1 = "Uçmak için [BOŞLUK] veya [↑]";
+                string hint2 = "Oyunu başlatmak için tuşa basın!";
+
+                float cardW = FitBoxWidth(g, 280, clientWidth, (title, _titleFont), (hint1, _subFont), (hint2, _subFont));
                 float cardH = 150;
                 float cardX = (clientWidth - cardW) / 2f;
                 float cardY = (GameHeight - cardH) / 2.3f;
@@ -310,12 +314,9 @@ namespace YMH219_FlappyBird.Engine
                 g.FillRectangle(_panelBrush, cardRect);
                 g.DrawRectangle(_panelBorder, cardRect.X, cardRect.Y, cardRect.Width, cardRect.Height);
 
-                string title = "FLAPPY BIRD";
                 SizeF titleSize = g.MeasureString(title, _titleFont);
                 g.DrawString(title, _titleFont, Brushes.DarkOrange, cardX + (cardW - titleSize.Width) / 2, cardY + 15);
 
-                string hint1 = "Uçmak için [BOŞLUK] veya [↑]";
-                string hint2 = "Oyunu başlatmak için tuşa basın!";
                 SizeF h1Size = g.MeasureString(hint1, _subFont);
                 SizeF h2Size = g.MeasureString(hint2, _subFont);
 
@@ -338,7 +339,13 @@ namespace YMH219_FlappyBird.Engine
             // DURUM: Game Over Ekranı
             else if (State == GameState.GameOver)
             {
-                float boxW = 300;
+                string gameOverText = "OYUN BİTTİ";
+                string endScore = $"Skorunuz: {ScoreManager.CurrentScore}";
+                string endHigh = $"En Yüksek Skor: {ScoreManager.HighScore}";
+                string restartHint = "Yeniden başlamak için [BOŞLUK] veya [R]";
+
+                float boxW = FitBoxWidth(g, 300, clientWidth,
+                    (gameOverText, _titleFont), (endScore, _infoFont), (endHigh, _infoFont), (restartHint, _subFont));
                 float boxH = 200;
                 float boxX = (clientWidth - boxW) / 2f;
                 float boxY = (GameHeight - boxH) / 2.5f;
@@ -347,13 +354,8 @@ namespace YMH219_FlappyBird.Engine
                 g.FillRectangle(_panelBrush, boxRect);
                 g.DrawRectangle(_panelBorder, boxRect.X, boxRect.Y, boxRect.Width, boxRect.Height);
 
-                string gameOverText = "OYUN BİTTİ";
                 SizeF goSize = g.MeasureString(gameOverText, _titleFont);
                 g.DrawString(gameOverText, _titleFont, Brushes.Crimson, boxX + (boxW - goSize.Width) / 2, boxY + 15);
-
-                string endScore = $"Skorunuz: {ScoreManager.CurrentScore}";
-                string endHigh = $"En Yüksek Skor: {ScoreManager.HighScore}";
-                string restartHint = "Yeniden başlamak için [BOŞLUK] veya [R]";
 
                 g.DrawString(endScore, _infoFont, Brushes.Black, boxX + 40, boxY + 70);
                 g.DrawString(endHigh, _infoFont, Brushes.DarkGoldenrod, boxX + 40, boxY + 100);
@@ -361,6 +363,19 @@ namespace YMH219_FlappyBird.Engine
                 SizeF rSize = g.MeasureString(restartHint, _subFont);
                 g.DrawString(restartHint, _subFont, Brushes.DarkBlue, boxX + (boxW - rSize.Width) / 2, boxY + 145);
             }
+        }
+
+        /// <summary>
+        /// Bilgi kutusunun genişliğini içindeki en uzun yazıya göre hesaplar. Ekran ölçeği
+        /// (%125, %150) büyüdükçe yazılar da büyüdüğü için sabit genişlikli kutu yazıyı taşırıyordu.
+        /// Kutu en az <paramref name="minWidth"/> genişliğinde olur ve pencereden taşmaz.
+        /// </summary>
+        private static float FitBoxWidth(Graphics g, float minWidth, int clientWidth, params (string Text, Font Font)[] lines)
+        {
+            const float padding = 20f;
+            float widest = lines.Max(line => g.MeasureString(line.Text, line.Font).Width);
+            float maxWidth = clientWidth - 2 * padding;
+            return Math.Min(Math.Max(widest + 2 * padding, minWidth), maxWidth);
         }
 
         /// <summary>
