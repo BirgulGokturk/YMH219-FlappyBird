@@ -26,6 +26,10 @@ namespace YMH219_FlappyBird.Engine
 
         private float _groundOffset = 0f;
 
+        // Çarpışmadan sonra Boşluk tuşunun yok sayıldığı süre (milisaniye)
+        private const int GameOverInputDelayMs = 600;
+        private long _gameOverTick;
+
         // HUD yazı tipleri ve fırçaları her karede (saniyede ~55 kez) yeniden oluşturulmak yerine
         // bir kez oluşturulur; oyun kapanırken Dispose ile serbest bırakılır.
         private readonly Font _scoreFont = new("Segoe UI", 26, FontStyle.Bold);
@@ -96,7 +100,13 @@ namespace YMH219_FlappyBird.Engine
             }
             else if (State == GameState.GameOver)
             {
-                Restart();
+                // Oyuncu çarptığı anda hâlâ Boşluk'a basıyor olabilir; kısa bir süre beklenmezse
+                // oyun "Oyun Bitti" ekranı görünmeden hemen yeniden başlıyordu.
+                // (R tuşu Restart'ı doğrudan çağırdığı için her zaman hemen çalışır.)
+                if (Environment.TickCount64 - _gameOverTick >= GameOverInputDelayMs)
+                {
+                    Restart();
+                }
             }
         }
 
@@ -200,6 +210,7 @@ namespace YMH219_FlappyBird.Engine
         private void TriggerGameOver()
         {
             State = GameState.GameOver;
+            _gameOverTick = Environment.TickCount64;
             SoundManager.PlayHitSound();
         }
 
