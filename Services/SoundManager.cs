@@ -1,5 +1,3 @@
-using System.Media;
-
 namespace YMH219_FlappyBird.Services
 {
     /// <summary>
@@ -7,52 +5,33 @@ namespace YMH219_FlappyBird.Services
     /// </summary>
     public class SoundManager
     {
+        // Ses efektlerinin frekans (Hz) ve süre (ms) değerleri tek yerde tutulur
+        private const int FlapFrequency = 700, FlapDuration = 35;
+        private const int ScoreFrequency = 1000, ScoreDuration = 45;
+        private const int HitFrequency = 350, HitDuration = 150;
+
         public bool IsMuted { get; set; } = false;
 
         /// <summary>
         /// Zıplama ses efekti (kısa tiz ton).
         /// </summary>
-        public void PlayFlapSound()
-        {
-            if (IsMuted) return;
-
-            Task.Run(() =>
-            {
-                try
-                {
-                    if (OperatingSystem.IsWindows())
-                    {
-                        Console.Beep(700, 35);
-                    }
-                }
-                catch { }
-            });
-        }
+        public void PlayFlapSound() => PlayTone(FlapFrequency, FlapDuration);
 
         /// <summary>
         /// Boru geçildiğinde puan alma ses efekti.
         /// </summary>
-        public void PlayScoreSound()
-        {
-            if (IsMuted) return;
-
-            Task.Run(() =>
-            {
-                try
-                {
-                    if (OperatingSystem.IsWindows())
-                    {
-                        Console.Beep(1000, 45);
-                    }
-                }
-                catch { }
-            });
-        }
+        public void PlayScoreSound() => PlayTone(ScoreFrequency, ScoreDuration);
 
         /// <summary>
         /// Çarpışma / Game Over ses efekti.
         /// </summary>
-        public void PlayHitSound()
+        public void PlayHitSound() => PlayTone(HitFrequency, HitDuration);
+
+        /// <summary>
+        /// Verilen frekans ve sürede kısa bir ton çalar. Console.Beep çalarken bekletir (bloklar);
+        /// oyun döngüsü takılmasın diye arka plan görevinde (Task) çalıştırılır.
+        /// </summary>
+        private void PlayTone(int frequency, int durationMs)
         {
             if (IsMuted) return;
 
@@ -62,10 +41,13 @@ namespace YMH219_FlappyBird.Services
                 {
                     if (OperatingSystem.IsWindows())
                     {
-                        Console.Beep(350, 150);
+                        Console.Beep(frequency, durationMs);
                     }
                 }
-                catch { }
+                catch
+                {
+                    // Ses aygıtı yoksa veya bip desteklenmiyorsa oyun sessiz devam eder
+                }
             });
         }
     }
